@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using ProductCrud.DTOs;
 using ProductCrud.Models;
 using ProductCrud.Services;
 using System.Threading.Tasks;
@@ -36,8 +37,7 @@ namespace ProductCrud.Controllers
         }
 
         // Get a product by id
-        [HttpGet]
-        [Route("{id}")]
+        [HttpGet("{id}")]
         public async Task<IActionResult> GetProductById(int id)
         {
             var product = await _productService.GetProductByIdAsync(id);
@@ -47,41 +47,69 @@ namespace ProductCrud.Controllers
                 return NotFound();
             }
 
-            return Ok(product);
+            var result = new ProductReadDto
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Description = product.Description,
+                Price = product.Price
+            };
+
+            return Ok(result);
         }
 
 
         // create product 
         [HttpPost]
-        public async Task<IActionResult> CreateProduct(Product product)
+        public async Task<IActionResult> CreateProduct(ProductCreateDto dto)
         {
+            var product = new Product
+            {
+                Name = dto.Name,
+                Description = dto.Description,
+                Price = dto.Price
+            };
+
             var result = await _productService.CreateProductAsync(product);
+
+            var response = new ProductReadDto
+            {
+                Id = result.Id,
+                Name = result.Name,
+                Description = result.Description,
+                Price = result.Price
+            };
 
             return CreatedAtAction(
                 nameof(GetProductById),
                 new { id = result.Id },
-                result
+                response
             );
         }
 
 
+
         // Update a product
-        [HttpPut]
-        [Route("{id}")]
-        public async Task<IActionResult> UpdateProduct(int id, Product product)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateProduct(int id, ProductUpdateDto dto)
         {
+            var product = new Product
+            {
+                Name = dto.Name,
+                Description = dto.Description,
+                Price = dto.Price
+            };
+
             var result = await _productService.UpdateProductAsync(id, product);
 
             if (!result)
                 return NotFound();
 
             return NoContent();
-
         }
 
         // delete a product
-        [HttpDelete]
-        [Route("{id}")]
+        [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
             var result = await _productService.DeleteProductAsync(id);
