@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using ProductCrud.Models;
+using ProductCrud.Services;
+using System.Threading.Tasks;
 
 namespace ProductCrud.Controllers
 {
@@ -9,17 +12,25 @@ namespace ProductCrud.Controllers
     public class ProductsController : ControllerBase
     {
 
-        static List<Product> products = new List<Product> 
-            {
-                new Product { Id = 1, Name = "Product 1", Description = "HP Laptop", Price = 10.99m },
-                new Product { Id = 2, Name = "Product 2", Description = "Dell Laptop", Price = 19.99m },
-                new Product { Id = 3, Name = "Product 3", Description = "Apple Laptop", Price = 5.99m }
-            };
+        //static List<Product> products = new List<Product> 
+        //    {
+        //        new Product { Id = 1, Name = "Product 1", Description = "HP Laptop", Price = 10.99m },
+        //        new Product { Id = 2, Name = "Product 2", Description = "Dell Laptop", Price = 19.99m },
+        //        new Product { Id = 3, Name = "Product 3", Description = "Apple Laptop", Price = 5.99m }
+        //    };
+
+        // dependency injection
+        private readonly IProductService _productService;
+        public ProductsController(IProductService productService)
+        {
+            _productService = productService;
+        }
 
         // Get all products
         [HttpGet]
-        public IActionResult GetProducts()
+        public async Task<IActionResult> GetProducts()
         {            
+            var products = await _productService.GetAllProductsAsync();
 
             return Ok(products);
         }
@@ -27,34 +38,42 @@ namespace ProductCrud.Controllers
         // Get a product by id
         [HttpGet]
         [Route("{id}")]
-        public IActionResult GetProductById(int id) 
+        public async Task<IActionResult> GetProductById(int id)
         {
-            var response = products.FirstOrDefault(p => p.Id == id);
+            var product = await _productService.GetProductByIdAsync(id);
 
-            if(response == null)
+            if (product == null)
             {
                 return NotFound();
             }
 
-            return Ok(response);
+            return Ok(product);
         }
+
+
+        // create product 
+        [HttpPost]
+        public async Task<IActionResult> CreateProduct(Product product)
+        {
+            var result = await _productService.CreateProductAsync(product);
+
+            return CreatedAtAction(
+                nameof(GetProductById),
+                new { id = result.Id },
+                result
+            );
+        }
+
 
         // Update a product
         [HttpPut]
         [Route("{id}")]
-        public IActionResult PutProduct(Product product)
+        public async Task<IActionResult> UpdateProduct(int id, Product product)
         {
-            var existingProduct = products.FirstOrDefault(p => p.Id == product.Id);
+            var result = await _productService.UpdateProductAsync(id, product);
 
-            if (existingProduct == null)
-            {
+            if (!result)
                 return NotFound();
-            }
-
-            // update data
-            existingProduct.Name = product.Name;
-            existingProduct.Description = product.Description;
-            existingProduct.Price = product.Price;
 
             return NoContent();
 
@@ -63,17 +82,12 @@ namespace ProductCrud.Controllers
         // delete a product
         [HttpDelete]
         [Route("{id}")]
-        public IActionResult DeleteProduct(int id) 
-        { 
-            var existingProduct = products.FirstOrDefault(p => p.Id == id);
+        public async Task<IActionResult> DeleteProduct(int id)
+        {
+            var result = await _productService.DeleteProductAsync(id);
 
-            if (existingProduct == null) {
-
+            if (!result)
                 return NotFound();
-            }
-
-            // delete data
-            products.Remove(existingProduct);
 
             return NoContent();
         } 
