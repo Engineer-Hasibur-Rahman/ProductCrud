@@ -2,6 +2,7 @@
 using Microsoft.OpenApi;
     using Microsoft.OpenApi.Models;
 using ProductCrud.Data;
+using ProductCrud.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +25,10 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1"
     });
 });
+
+
+// product service dependency injection 
+builder.Services.AddScoped<IProductService, ProductService>();
 
 var app = builder.Build();
 
