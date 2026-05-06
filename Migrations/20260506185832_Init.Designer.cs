@@ -11,8 +11,8 @@ using ProductCrud.Data;
 namespace ProductCrud.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260506140812_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260506185832_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -36,7 +36,6 @@ namespace ProductCrud.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Price")

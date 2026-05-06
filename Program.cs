@@ -29,6 +29,7 @@ builder.Services.AddSwaggerGen(options =>
 
 // product service dependency injection 
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 var app = builder.Build();
 
