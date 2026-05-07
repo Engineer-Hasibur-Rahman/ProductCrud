@@ -40,7 +40,12 @@ namespace ProductCrud.Services
 
             existing.Name = category.Name;
             existing.Description = category.Description;
-            existing.Image = category.Image;
+          
+            // update image only if exists
+            if (!string.IsNullOrEmpty(category.Image))
+            {
+                existing.Image = category.Image;
+            }
 
             await _context.SaveChangesAsync();
             return true;
