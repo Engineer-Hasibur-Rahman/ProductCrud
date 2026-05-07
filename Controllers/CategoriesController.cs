@@ -10,14 +10,14 @@ namespace ProductCrud.Controllers
     public class CategoriesController : ControllerBase
     {
         private readonly ICategoryService _service;
-        private readonly IWebHostEnvironment _environment;
+        private readonly IFileStorageService _fileStorageService;
 
         public CategoriesController(
             ICategoryService service,
-            IWebHostEnvironment environment)
+            IFileStorageService fileStorageService)
         {
             _service = service;
-            _environment = environment;
+            _fileStorageService = fileStorageService;
         }
 
         [HttpGet]
@@ -55,9 +55,7 @@ namespace ProductCrud.Controllers
                 Name = category.Name,
                 Description = category.Description,
                 Image = category.Image,
-               ImageUrl = category.Image != null
-            ? $"{Request.Scheme}://{Request.Host}/uploads/categories/{category.Image}"
-            : null
+                ImageUrl = _fileStorageService.GetSingleFileUrl(category.Image, Request, "categories")
             };
 
             return Ok(result);
@@ -66,32 +64,7 @@ namespace ProductCrud.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateCategory([FromForm] CategoryCreateDto dto)
         {
-            string? imageName = null;
-
-            if (dto.Image != null)
-            {
-                imageName = Guid.NewGuid().ToString() + Path.GetExtension(dto.Image.FileName);
-
-                var webRootPath = _environment.WebRootPath;
-                if (string.IsNullOrEmpty(webRootPath))
-                {
-                    webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-                }
-
-                var folderPath = Path.Combine(webRootPath, "uploads", "categories");
-
-                if (!Directory.Exists(folderPath))
-                {
-                    Directory.CreateDirectory(folderPath);
-                }
-
-                var imagePath = Path.Combine(folderPath, imageName);
-
-                using (var stream = new FileStream(imagePath, FileMode.Create))
-                {
-                    await dto.Image.CopyToAsync(stream);
-                }
-            }
+            var imageName = await _fileStorageService.SingleFileUploadAsync(dto.Image, "categories");
 
             var category = new Category
             {
@@ -107,7 +80,8 @@ namespace ProductCrud.Controllers
                 Id = result.Id,
                 Name = result.Name,
                 Description = result.Description,
-                Image = result.Image
+                Image = result.Image,
+                ImageUrl = _fileStorageService.GetSingleFileUrl(result.Image, Request, "categories")
             };
 
             return CreatedAtAction(
@@ -120,38 +94,21 @@ namespace ProductCrud.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCategory(int id, [FromForm] CategoryUpdateDto dto)
         {
-            string? imageName = null;
+            var existingCategory = await _service.GetCategoryByIdAsync(id);
+
+            if (existingCategory == null)
+                return NotFound();
 
             if (dto.Image != null)
             {
-                imageName = Guid.NewGuid().ToString() + Path.GetExtension(dto.Image.FileName);
-
-                var webRootPath = _environment.WebRootPath;
-                if (string.IsNullOrEmpty(webRootPath))
-                {
-                    webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-                }
-
-                var folderPath = Path.Combine(webRootPath, "uploads", "categories");
-
-                if (!Directory.Exists(folderPath))
-                {
-                    Directory.CreateDirectory(folderPath);
-                }
-
-                var imagePath = Path.Combine(folderPath, imageName);
-
-                using (var stream = new FileStream(imagePath, FileMode.Create))
-                {
-                    await dto.Image.CopyToAsync(stream);
-                }
+                await _fileStorageService.DeleteSingleFileAsync(existingCategory.Image, "categories");
+                existingCategory.Image = await _fileStorageService.SingleFileUploadAsync(dto.Image, "categories");
             }
 
             var category = new Category
             {
                 Name = dto.Name,
-                Description = dto.Description,
-                Image = imageName
+                Description = dto.Description
             };
 
             var result = await _service.UpdateCategoryAsync(id, category);
@@ -165,10 +122,27 @@ namespace ProductCrud.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
+            // get existing category
+            var category = await _service.GetCategoryByIdAsync(id);
+
+            if (category == null)
+            {
+                return NotFound();
+            }
+
+            // delete image file
+            await _fileStorageService.DeleteSingleFileAsync(
+                category.Image,
+                "categories"
+            );
+
+            // delete database record
             var result = await _service.DeleteCategoryAsync(id);
 
             if (!result)
-                return NotFound();
+            {
+                return BadRequest();
+            }
 
             return NoContent();
         }
