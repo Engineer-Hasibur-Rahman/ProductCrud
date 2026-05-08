@@ -10,7 +10,7 @@ namespace ProductCrud.DTOs
         [Required]
         public string Description { get; set; }
 
-        public IFormFile? Image { get; set; }
+        public IFormFile? Image { get; set; } = null;
 
     }
 }
