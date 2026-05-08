@@ -29,6 +29,7 @@ namespace ProductCrud.Controllers
             {
                 Id = category.Id,
                 Name = category.Name,
+                Slug = category.Slug,
                 Description = category.Description,
                 Image = category.Image,
                 ImageUrl = category.Image != null
@@ -66,9 +67,14 @@ namespace ProductCrud.Controllers
         {
             var imageName = await _fileStorageService.SingleFileUploadAsync(dto.Image, "categories");
 
+            // slug generate 
+            var slug = dto.Name.ToLower().Replace(" ", "-");
+
+
             var category = new Category
             {
                 Name = dto.Name,
+                Slug = slug,
                 Description = dto.Description,
                 Image = imageName
             };
@@ -99,15 +105,24 @@ namespace ProductCrud.Controllers
             if (existingCategory == null)
                 return NotFound();
 
+
+
             if (dto.Image != null)
             {
                 await _fileStorageService.DeleteSingleFileAsync(existingCategory.Image, "categories");
                 existingCategory.Image = await _fileStorageService.SingleFileUploadAsync(dto.Image, "categories");
             }
 
+            // Generate Slug
+            var slug = dto.Name
+                .Trim()
+                .ToLower()
+                .Replace(" ", "-");
+
             var category = new Category
             {
                 Name = dto.Name,
+                Slug = slug,
                 Description = dto.Description
             };
 
